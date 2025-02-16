@@ -15,6 +15,7 @@ app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`);
 });
 
+// Lista de usuários incial (simulação de um banco de dados) 
 let users = [
     { id: 1, name: 'John Doe', email: 'john.doe@email.com' },
     { id: 2, name: 'Mary Lee', email: 'mary.lee@email.com' },
@@ -31,10 +32,13 @@ app.get('/users', (req, res) => {
 
     // Seleciona os usuários para a página atual
     const paginatedUsers = users.slice(startIndex, startIndex + size);
+
+    // Cria um DTO (Data Transfer Object) para retornar apenas os nomes dos usuários
+    const userNames = paginatedUsers.map(user => user.name);
   
-    // Retorna os usuários paginados e informações de paginação no formato JSON
+    // Retorna os nomes dos usuários paginados e informações de paginação no formato JSON
     res.json({
-        data: paginatedUsers,
+        data: userNames,
         pagination: {
             page,
             size,
