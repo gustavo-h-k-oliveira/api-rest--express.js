@@ -1,4 +1,5 @@
 const express = require('express');
+const { body, validationResult } = require('express-validator');
 const userV1 = require('./routes/v1/users');
 const app = express();
 const port = 3000;
@@ -43,14 +44,40 @@ app.get('/users', (req, res) => {
 });
 
 // POST /users (Criar novo usuário)
-app.post('/users', (req, res) => {
-    const newUser = {
-        id: users.length + 1,
-        name: req.body.name,
-        email: req.body.email,
-    };
-    users.push(newUser);
-    res.status(201).json(newUser); // 201 = Created
+app.post(
+    '/users', 
+    [
+        // Middleware de validação para verificar se o campo 'email' é um endereço de e-mail válido
+        body('email').isEmail().withMessage('Invalid email address'),
+    ],
+    (req, res) => {
+        // Obtém os erros de validação da solicitação
+        const errors = validationResult(req);
+        // Se houver erros de validação, retorna uma resposta com status 400 (Bad Request) e os erros em formato JSON
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        // Cria um novo objeto de usuário com um ID único, nome e e-mail fornecidos no corpo da solicitação
+        const newUser = {
+            id: users.length + 1,
+            name: req.body.name,
+            email: req.body.email,
+        };
+        // Adiciona o novo usuário à lista de usuários
+        users.push(newUser);
+        // Retorna uma resposta com status 201 (Created) e os dados do novo usuário em formato JSON
+        res.status(201).json(newUser);
+    }
+);
+
+// Tratamento de erro
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({
+        error: {
+            code: "SERVER_ERROR",
+            message: 'Internal Server Error',
+        },
+    });
 });
-
-
