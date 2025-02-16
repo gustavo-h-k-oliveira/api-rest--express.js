@@ -1,8 +1,10 @@
 const express = require('express');
+const userV1 = require('./routes/v1/users');
 const app = express();
 const port = 3000;
 
 app.use(express.json());
+app.use('/v1/users', userV1);
 
 app.get('/', (req, res) => {
     res.send('Hello World! 👋');
