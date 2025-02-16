@@ -21,7 +21,25 @@ let users = [
 
 // GET /users (Listar todos os usuários)
 app.get('/users', (req, res) => {
-    res.status(200).json(users);
+    // Obtém os parâmetros de consulta 'page' e 'size' da URL, ou define valores padrão se não forem fornecidos
+    const page = parseInt(req.query.page) || 1;
+    const size = parseInt(req.query.size) || 10;
+
+    // Calcula o índice inicial para a paginação
+    const startIndex = (page - 1) * size;
+
+    // Seleciona os usuários para a página atual
+    const paginatedUsers = users.slice(startIndex, startIndex + size);
+  
+    // Retorna os usuários paginados e informações de paginação no formato JSON
+    res.json({
+        data: paginatedUsers,
+        pagination: {
+            page,
+            size,
+            total: users.length,
+        },
+    });
 });
 
 // POST /users (Criar novo usuário)
