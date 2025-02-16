@@ -1,8 +1,15 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
 const userV1 = require('./routes/v1/users');
+require('dotenv').config();
+
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
+
+mongoose.connect(process.env.MONGODB_URI)
+.then(() => console.log('Connected to MongoDB!'))
+.catch(err => console.error('Connection error:', err));
 
 app.use(express.json());
 app.use('/v1/users', userV1);
