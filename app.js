@@ -80,11 +80,13 @@ app.post('/users', async (req, res) => {
 
 // Tratamento de erro
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({
-        error: {
-            code: "SERVER_ERROR",
-            message: 'Internal Server Error',
-        },
-    });
+    if (err.name === 'ValidationError') { // Erro de validação do Mongoose
+        return res.status(400).json({ 
+            error: {
+                code: 'VALIDATION_ERROR',
+                details: Object.values(err.errors).map(e => e.message),
+            },
+        });
+    }
+    res.status(500).json({ error: 'Internal Server Error' });
 });
