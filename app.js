@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
 const userV1 = require('./routes/v1/users');
+const User = require('./models/User');
 require('dotenv').config();
 
 const app = express();
@@ -28,59 +29,54 @@ let users = [
     { id: 2, name: 'Mary Lee', email: 'mary.lee@email.com' },
 ];
 
-// GET /users (Listar todos os usuários)
-app.get('/users', (req, res) => {
-    // Obtém os parâmetros de consulta 'page' e 'size' da URL, ou define valores padrão se não forem fornecidos
-    const page = parseInt(req.query.page) || 1;
-    const size = parseInt(req.query.size) || 10;
+// GET /users (Listar usuários com paginação)
+app.get('/users', async (req, res) => {
+    try {
+        // Obtém os parâmetros de consulta 'page' e 'size' da URL, ou define valores padrão se não forem fornecidos
+        const page = parseInt(req.query.page) || 1;
+        const size = parseInt(req.query.size) || 10;
+        const skip = (page - 1) * size;
 
-    // Calcula o índice inicial para a paginação
-    const startIndex = (page - 1) * size;
+        // Busca usuários no banco de dados com paginação
+        const users = await User.find()
+            .skip(skip)
+            .limit(size);
 
-    // Seleciona os usuários para a página atual
-    const paginatedUsers = users.slice(startIndex, startIndex + size);
+        // Conta o número total de documentos na coleção de usuários
+        const total = await User.countDocuments();
 
-    // Cria um DTO (Data Transfer Object) para retornar apenas os nomes dos usuários
-    const userNames = paginatedUsers.map(user => user.name);
-  
-    // Retorna os nomes dos usuários paginados e informações de paginação no formato JSON
-    res.json({
-        data: userNames,
-        pagination: {
-            page,
-            size,
-            total: users.length,
-        },
-    });
+        // Retorna os usuários paginados e informações de paginação no formato JSON
+        res.json({
+            data: users,
+            pagination: {
+                page,
+                size,
+                total,
+            },
+        });
+
+    } catch (err) {
+        // Retorna um erro 500 em caso de falha na busca de usuários
+        res.status(500).json({ error: "Error searching for users." });
+    }
 });
 
 // POST /users (Criar novo usuário)
-app.post(
-    '/users', 
-    [
-        // Middleware de validação para verificar se o campo 'email' é um endereço de e-mail válido
-        body('email').isEmail().withMessage('Invalid email address'),
-    ],
-    (req, res) => {
-        // Obtém os erros de validação da solicitação
-        const errors = validationResult(req);
-        // Se houver erros de validação, retorna uma resposta com status 400 (Bad Request) e os erros em formato JSON
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
+app.post('/users', async (req, res) => {
+    try {
+        const { name, email } = req.body;
+        const newUser = new User({ name, email });
+        await newUser.save();
 
-        // Cria um novo objeto de usuário com um ID único, nome e e-mail fornecidos no corpo da solicitação
-        const newUser = {
-            id: users.length + 1,
-            name: req.body.name,
-            email: req.body.email,
-        };
-        // Adiciona o novo usuário à lista de usuários
-        users.push(newUser);
-        // Retorna uma resposta com status 201 (Created) e os dados do novo usuário em formato JSON
         res.status(201).json(newUser);
+    } catch (err) {
+        if (err.code === 11000) {
+            return res.status(400).json({ error: 'Email already exists' });
+        } else {
+            res.status(500).json({ error: 'Error creating user' });
+        }
     }
-);
+});
 
 // Tratamento de erro
 app.use((err, req, res, next) => {
