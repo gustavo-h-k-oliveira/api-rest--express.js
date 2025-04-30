@@ -8,15 +8,42 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Configuração do EJS
+app.set('view engine', 'ejs');
+app.set('views', './views');
+
 mongoose.connect(process.env.MONGODB_URI)
-.then(() => console.log('Connected to MongoDB!'))
-.catch(err => console.error('Connection error:', err));
+    .then(() => console.log('Connected to MongoDB!'))
+    .catch(err => console.error('Connection error:', err));
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // Para lidar com formulários
 app.use('/v1/users', userV1);
 
 app.get('/', (req, res) => {
     res.send('Hello World! 👋');
+});
+
+// Rota para exibir a interface de usuários
+app.get('/users/interface', async (req, res) => {
+    try {
+        const users = await User.find();
+        res.render('users', { users });
+    } catch (err) {
+        res.status(500).send('Error loading users.');
+    }
+});
+
+// Rota para adicionar um novo usuário via formulário
+app.post('/users/interface', async (req, res) => {
+    try {
+        const { name, email } = req.body;
+        const newUser = new User({ name, email });
+        await newUser.save();
+        res.redirect('/users/interface');
+    } catch (err) {
+        res.status(500).send('Error adding user.');
+    }
 });
 
 app.listen(port, () => {
