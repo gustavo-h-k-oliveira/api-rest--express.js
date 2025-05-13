@@ -1,8 +1,10 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
-const userV1 = require('./routes/v1/users');
+// const userV1 = require('./routes/v1/users');
+const userV2 = require('./routes/v2/users');
 const User = require('./models/User');
+const authRoutes = require('./routes/v2/auth');
 require('dotenv').config();
 
 const app = express();
@@ -13,7 +15,8 @@ mongoose.connect(process.env.MONGODB_URI)
 .catch(err => console.error('Connection error:', err));
 
 app.use(express.json());
-app.use('/v1/users', userV1);
+app.use('/v2/users', userV2);
+app.use('/auth', authRoutes);
 
 app.get('/', (req, res) => {
     res.send('Hello World! 👋');
@@ -76,6 +79,12 @@ app.post('/users', async (req, res) => {
             res.status(500).json({ error: 'Error creating user' });
         }
     }
+});
+
+// Exemplo de rota protegida
+const authMiddleware = require('./middlewares/authMiddleware');
+app.get('/protected', authMiddleware, (req, res) => {
+    res.json({ message: 'This is a protected route', user: req.user });
 });
 
 // Tratamento de erro
