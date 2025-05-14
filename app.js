@@ -5,6 +5,7 @@ const { body, validationResult } = require('express-validator');
 const userV2 = require('./routes/v2/users');
 const User = require('./models/User');
 const authRoutes = require('./routes/v2/auth');
+const bcrypt = require('bcrypt');
 require('dotenv').config();
 
 const app = express();
@@ -81,10 +82,45 @@ app.post('/users', async (req, res) => {
     }
 });
 
-// Exemplo de rota protegida
 const authMiddleware = require('./middlewares/authMiddleware');
+const authorizeRoles = require('./middlewares/roleMiddleware');
+
+// Exemplo de rota protegida
 app.get('/protected', authMiddleware, (req, res) => {
     res.json({ message: 'This is a protected route', user: req.user });
+});
+
+// Endpoint para criar usuário admin (apenas para admins autenticados)
+app.post('/users/admin', authMiddleware, authorizeRoles('admin'), async (req, res) => {
+    try {
+        const { name, email, password } = req.body;
+
+        // Verifica se o e-mail já existe
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ error: 'Email already exists' });
+        }
+
+        // Criptografa a senha
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Cria usuário com role 'admin'
+        const newUser = new User({ name, email, password: hashedPassword, role: 'admin' });
+        await newUser.save();
+
+        // Nunca retorne a senha!
+        const userResponse = {
+            _id: newUser._id,
+            name: newUser.name,
+            email: newUser.email,
+            role: newUser.role,
+            createdAt: newUser.createdAt,
+        };
+
+        res.status(201).json(userResponse);
+    } catch (err) {
+        res.status(500).json({ error: 'Error creating admin user' });
+    }
 });
 
 // Tratamento de erro
@@ -98,4 +134,20 @@ app.use((err, req, res, next) => {
         });
     }
     res.status(500).json({ error: 'Internal Server Error' });
+});
+
+// DELETE /users/:id (Deletar usuário)
+app.delete('/users/:id', authMiddleware, authorizeRoles('admin'), async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const deletedUser = await User.findByIdAndDelete(userId);
+
+        if (!deletedUser) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.status(200).json({ message: 'User deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ error: 'Error deleting user' });
+    }
 });

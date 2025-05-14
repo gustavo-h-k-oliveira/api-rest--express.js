@@ -13,7 +13,7 @@ Este projeto é uma API RESTful construída com Express.js e MongoDB. Abaixo est
 
 ## Funcionalidades Sugeridas
 
-- [ ] **Autenticação e Autorização**: Implementar autenticação de usuários usando JWT e middleware para proteger rotas.
+- [x] **Autenticação e Autorização**: Implementar autenticação de usuários usando JWT e middleware para proteger rotas.
 - [ ] **Atualização e Exclusão de Usuários**: Adicionar endpoints para atualizar (`PUT /users/:id`) e excluir (`DELETE /users/:id`) usuários.
 - [ ] **Validação Avançada de Dados**: Usar `express-validator` para validação e sanitização de dados de entrada.
 - [ ] **Upload de Arquivos**: Permitir upload de arquivos, como fotos de perfil, utilizando `multer`.
